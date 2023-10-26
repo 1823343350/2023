@@ -11,8 +11,10 @@ class Conv(CustomModel):
 
     """
 
-    def __init__(self, input_features_nums: int, Number_of_neurons: int, bias: float = 0, loss_fn: any = None, activation_function: any = None) -> None:
-        super().__init__('Linear', input_features_nums, Number_of_neurons, bias, loss_fn, activation_function)
+    def __init__(self, in_channels: int, out_channels: int, bias: float = 0, kernel_size: int = None, activation_function: any = None, stride: int = None, padding: int = None) -> None:
+        super().__init__('Conv', activation_function)
+
+        self.weight = np.random.uniform(low=-1, high=1, size=(10, 2, 3))
 
     def __call__(self, x):
         if self.activation_function:

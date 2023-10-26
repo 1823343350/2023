@@ -1,6 +1,6 @@
 from math import sqrt
 import numpy as np
-from Deep.activation import ReLU
+from Deep_gpu.activation import ReLU
 
 class CustomModel:
     """
@@ -19,7 +19,7 @@ class CustomModel:
 
     """
     
-    def __init__(self, name: str, input_features_nums: int = 0, Number_of_neurons: int = 0, activation_function: any = None, bias: bool = True):
+    def __init__(self, name: str, activation_function: any = None):
         """
         参数:
             name: 这一层的类型, 目前只支持全连接层\n
@@ -31,8 +31,6 @@ class CustomModel:
         """
         self.size = []
         self.name = name
-        self.input_features_nums = input_features_nums
-        self.Number_of_neurons = Number_of_neurons
         self.activation_function = activation_function
         
         # 每一层的两个权重梯度
@@ -52,8 +50,3 @@ class CustomModel:
         self.uw_grad: np.ndarray = None
         # wx+b对b的导数
         self.uy_grad: np.ndarray = None
-        a = sqrt(6 / (input_features_nums + Number_of_neurons))
-        # 生成随机的初始权重, 均匀分布在[-a, a]之间, 一共有Number_of_neurons个神经元，每个神经元有in_features这么多参数
-        self.weight = np.random.uniform(low=-a, high=a, size=(Number_of_neurons, input_features_nums))
-        self.bias = np.full((1, Number_of_neurons), 1.0)
-        self.size.append([input_features_nums, Number_of_neurons])

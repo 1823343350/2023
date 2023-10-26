@@ -20,9 +20,9 @@ class MyModel():
         }
 
         for layer_name, layer_info in layers_dict.items():
-            layer_type = layer_info['type']
-            in_features = layer_info['in_features']
-            out_features = layer_info['out_features']
+            layer_type = layer_info.get('type', None)
+            in_features = layer_info.get('in_features', None)
+            out_features = layer_info.get('out_features', None)
             activation_name = layer_info.get('activation', None)
             bias = layer_info.get('bias', 0)
 
@@ -35,12 +35,13 @@ class MyModel():
             if layer_type == 'linear':
                 layer = Linear(in_features, out_features, activation, bias)
             elif layer_type == 'conv':
-                # TODO
                 layer = Conv(
                     in_channels=layer_info['in_channels'],
                     out_channels=layer_info['out_channels'],
                     kernel_size=layer_info['kernel_size'],
                     activation=activation,  # 传递激活函数
+                    stride=layer_info['stride'], 
+                    padding=['padding'],
                     bias=bias
                 )
             else:

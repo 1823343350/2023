@@ -22,6 +22,7 @@ class CrossEntropyLoss:
 
     def __call__(self, actual_values: cp.ndarray, predicted_values: cp.ndarray, Regularization: str = None):
         # 防止概率值为0
+        # predicted_values = predicted_values.T
         epsilon = 1e-2
         predicted_values = cp.maximum(epsilon, predicted_values)
         # 计算交叉熵损失
@@ -57,6 +58,7 @@ class MeanSquaredError:
         pass
 
     def __call__(self, actual_values: cp.ndarray, predicted_values: cp.ndarray):
+        # predicted_values = predicted_values.T
         if actual_values.shape == predicted_values.shape:
             differences = actual_values - predicted_values
             squared_differences = (cp.power(differences, 2)) / 2

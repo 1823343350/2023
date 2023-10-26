@@ -1,78 +1,74 @@
 from typing import Any
-import numpy as np
+import cupy as cp
 import torch
 from DL import plot_graph
-from Deep_cpu import MyModel
-from Deep_cpu.activation import ReLU
-from Deep_cpu.activation.loss import MeanSquaredError, CrossEntropyLoss
-from Deep_cpu.optimizer.gdo import GradientDescentOptimizer
+from Deep_gpu import MyModel
+from Deep_gpu.activation import ReLU
+from Deep_gpu.activation.loss import MeanSquaredError, CrossEntropyLoss
+from Deep_gpu.optimizer.gdo import GradientDescentOptimizer
 
 import torchvision
 import torchvision.transforms as transforms
 
-photo_nums = 64
-
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transform, download=True)
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=photo_nums, shuffle=True)
-
-loss_fn = CrossEntropyLoss()
+loss_fn = MeanSquaredError()
 op = GradientDescentOptimizer(lr=0.1, max_iterations=1)
 
 layer_dict = {
     'first': {
-        'type': 'linear',
-        'in_features': 784,
-        'out_features': 128,
+        'type': 'conv',
+        'in_channels': 3,
+        'out_channels': 3,
+        'kernel_size': 2, # 卷积核大小11*11
+        'stride': 1, # 步长
+        'padding': 0,# 填充
         'activation': "ReLU"
+    },
+    'second': {
+        'type': 'pool',
+        'kernel_size': 2,
+        'stride': 1, # 步长
+        'pool_function': 'Max',
+        'activation': "Flatten"
     },
     'output': {
         'type': 'linear',
-        'in_features': 128,
-        'out_features': 10,
-        'activation': "Softmax",
+        'input_features_nums': 4,
+        'Number_of_neurons': 1,
+        # 'activation': "Softmax",
         'loss_fn': loss_fn
     }
 }
 
 model = MyModel(layers_dict=layer_dict, optimizer = op)
 
-# 数据预处理--One-Hot Encoding
-k = 1
-aaas2 = []
-issss = True
-for i in range(10):
-    j = 0
-    for batch in train_loader:
-        inputs, labels = batch
+a = cp.array([
+    [[1,2,3,4],
+     [4,5,6,5],
+     [7,8,9,6],
+     [1,3,4,5]],
 
-        x = inputs.numpy()
-        y = labels.numpy()
-        x = x.reshape(photo_nums, -1)
-        y_one_hot = np.zeros((len(y), 10))
+    [[124,12,3,4],
+     [4,5,6,5],
+     [7,8,9,46],
+     [1,33,4,5]],
 
-        for i in range(len(y)):
-            y_one_hot[i, y[i]] = 1
+    [[1,122,3,4],
+     [4,5,6,5],
+     [7,8,9,146],
+     [1,323,4,5]],
+])
+y = cp.array([
+    [1,2,3]
+])
+myconv = model.layers[0]
+mypool = model.layers[1]
+myline = model.layers[2]
+ss1 = myconv(a)
+ss2 = mypool(ss1)
+print(ss1)
+print(ss2)
+ss3 = myline(ss2)
 
-        while issss:
-            aaas1 = x
-            aaas2.append(y_one_hot)
-            issss = False
+print(ss3.shape)
 
-        if x.shape[1] == 784:
-            model.fit(x, y_one_hot)
-            # print(f"Epoch {i + 1}, Loss: {model.loss[-1] / photo_nums}")
-        if j > 10:
-            break
-        j += 1
-    k += 1
-    if k > 10:
-        break
-
-result = model.predict(aaas1)
-max_values = np.max(result, axis=0)
-max_indices = np.argmax(result, axis=0)
-for row, (max_value, max_index) in enumerate(zip(max_values, max_indices)):
-    print(f"Row {row}: Max Value = {max_value}, Index = {max_index}")
-print(result[::, 0])
-print()
+print(loss_fn(y, ss3))

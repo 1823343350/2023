@@ -1,5 +1,6 @@
 import cupy as cp
 
+
 class GradientDescentOptimizer:
     """
     梯度下降优化器
@@ -37,7 +38,7 @@ class GradientDescentOptimizer:
         清零所有参数的梯度。
         """
         for layer in layers:
-            # if layer.ly_grad is not None: 
+            # if layer.ly_grad is not None:
             layer.ly_grad = None
             layer.lwgrad = None
             layer.lbgrad = None
@@ -55,7 +56,8 @@ class GradientDescentOptimizer:
 
         # 如果存在激活函数, 求激活函数的偏导数
         if layer.activation_function:
-            layer.lc_grad = layer.activation_function.derivative(layer.u + layer.bias.T)
+            layer.lc_grad = layer.activation_function.derivative(
+                layer.u + layer.bias.T)
         else:
             layer.lc_grad = 1
 
@@ -63,11 +65,12 @@ class GradientDescentOptimizer:
         if layer.activation_function == 'Softmax':
             part = []
             for dim in range(layer.lc_grad.shape[0]):
-                part.append(cp.sum(layer.ly_grad[::, dim] * layer.lc_grad[dim], axis=1))
+                part.append(
+                    cp.sum(layer.ly_grad[::, dim] * layer.lc_grad[dim], axis=1))
             layer.ly_grad = cp.stack(part, axis=1)
         else:
             layer.ly_grad = layer.ly_grad * layer.lc_grad
-        
+
         # 损失函数对参数的导数
         layer.lwgrad = (cp.dot(layer.uw_grad, layer.ly_grad.T)/(layer.uw_grad.shape[1])).T
         layer.lbgrad = cp.sum(layer.ly_grad, axis=1)/(layer.uw_grad.shape[1])

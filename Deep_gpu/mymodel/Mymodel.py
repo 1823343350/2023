@@ -1,6 +1,8 @@
 from typing import Any
 from Deep_gpu import Linear, ReLU, MeanSquaredError, GradientDescentOptimizer, CustomModel, Conv
 from Deep_gpu import Sigmoid, Softmax
+from Deep_gpu.activation import Flatten
+from Deep_gpu.layer import Pool
 
 class MyModel():
 
@@ -16,15 +18,13 @@ class MyModel():
             "ReLU": ReLU(),
             "Sigmoid": Sigmoid(),
             "Softmax": Softmax(),
+            "Flatten": Flatten(),
         }
 
         for layer_name, layer_info in layers_dict.items():
-            layer_type = layer_info['type']
-            in_features = layer_info['in_features']
-            out_features = layer_info['out_features']
+            layer_type = layer_info.get('type', None)
+            
             activation_name = layer_info.get('activation', None)
-            bias = layer_info.get('bias', 0)
-
             # 输出层获得损失函数
             if layer_name == 'output':
                 self.loss_fn = layer_info.get('loss_fn', None)
@@ -32,23 +32,36 @@ class MyModel():
             activation = activation_functions.get(activation_name)
 
             if layer_type == 'linear':
-                layer = Linear(in_features, out_features, activation, bias, regularization)
+                layer = Linear(
+                    input_features_nums = layer_info.get('input_features_nums', None),
+                    Number_of_neurons = layer_info.get('Number_of_neurons', None),
+                    activation_function = activation,
+                    regularization = layer_info.get('regularization', None),
+                )
             elif layer_type == 'conv':
-                # TODO
                 layer = Conv(
-                    in_channels=layer_info['in_channels'],
-                    out_channels=layer_info['out_channels'],
-                    kernel_size=layer_info['kernel_size'],
-                    activation=activation,  # 传递激活函数
-                    bias=bias
+                    in_channels = layer_info.get('in_channels', None),
+                    out_channels = layer_info.get('out_channels', None),
+                    kernel_size = layer_info.get('kernel_size', None),
+                    activation_function = activation,
+                    stride = layer_info.get('stride', None),
+                    padding = layer_info.get('padding', None),
+                    bias = layer_info.get('bias', 0),
+                )
+            elif layer_type == 'pool':
+                layer = Pool(
+                    kernel_size = layer_info.get('kernel_size', 1),
+                    stride = layer_info.get('stride', 1),
+                    pool_function= layer_info.get('pool_function', None),
+                    activation = activation # 传递激活函数
                 )
             else:
                 raise ValueError(f"未知类型的层: {layer_type}")
             self.layers.append(layer)
 
     def fit(self, x, y):
-        self.x_data = x.T
-        self.y_data = y.T
+        self.x_data = x
+        self.y_data = y
         for i in range(self.optimizer.max_iterations):
             self.forward(self.x_data, self.y_data)
             self.back_propagation()
@@ -75,7 +88,6 @@ class MyModel():
         self.optimizer(self.layers)
 
     def predict(self, x):
-        x = x.T
         for layer in self.layers:
             x = layer(x)
         return x

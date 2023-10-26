@@ -1,6 +1,6 @@
 import numpy as np
 
-from Deep.activation import ReLU
+from Deep_gpu.activation import ReLU
 from .model import CustomModel
 
 class Linear(CustomModel):
@@ -14,7 +14,12 @@ class Linear(CustomModel):
     """
 
     def __init__(self, input_features_nums: int, Number_of_neurons: int, activation_function: any = None, bias: float = 0) -> None:
-        super().__init__('Linear', input_features_nums, Number_of_neurons, activation_function, bias)
+        super().__init__('Linear', activation_function)
+        # 生成随机的初始权重, 均匀分布在[-a, a]之间, 一共有Number_of_neurons个神经元，每个神经元有in_features这么多参数
+        a = np.sqrt(6 / (input_features_nums + Number_of_neurons))
+        self.weight = np.random.uniform(low=-a, high=a, size=(Number_of_neurons, input_features_nums))
+        self.bias = np.full((1, Number_of_neurons), 1.0)
+        self.size.append([input_features_nums, Number_of_neurons])
 
     def __call__(self, x):
         self.u = np.dot(self.weight, x)
