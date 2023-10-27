@@ -12,8 +12,8 @@ class Conv(CustomModel):
 
     """
 
-    def __init__(self, in_channels: int, out_channels: int, bias: float = 0, kernel_size: int = None, activation_function: any = None, stride: int = None, padding: int = None, regularization = None) -> None:
-        super().__init__('Conv', activation_function, regularization)
+    def __init__(self, name: str = 'conv',in_channels: int = 0, out_channels: int = 0, bias: float = 0, kernel_size: int = None, activation_function: any = None, stride: int = None, padding: int = None, regularization = None) -> None:
+        super().__init__(name=name, activation_function=activation_function, regularization=regularization)
 
         a = sqrt(6 / (in_channels + out_channels))
         self.out_channels = out_channels
@@ -23,6 +23,8 @@ class Conv(CustomModel):
         self.size.append([in_channels, out_channels])
         self.stride = stride
         self.padding = padding
+        self.temp: list = []
+        self.type = 'conv'
 
     def __call__(self, x):
         # 根据pad进行填充
@@ -30,6 +32,8 @@ class Conv(CustomModel):
             matrix = cp.pad(x, ((0, 0), (self.padding, self.padding), (self.padding, self.padding)), mode='constant', constant_values=0)
         else:
             matrix = x
+        # 记录计算矩阵, 后面反向传播需要用到
+        self.uw_grad = x
         # 开始滑动计算结果
         row = int((matrix.shape[1]+2*self.padding-self.kernel_size)/self.stride) + 1
         col = int((matrix.shape[2]+2*self.padding-self.kernel_size)/self.stride) + 1
@@ -38,6 +42,9 @@ class Conv(CustomModel):
         for z in range(self.weight.shape[0]):
             for i in range(row):
                 for k in range(col):
+                    # 保存被卷积的矩阵, 后面反向传播用
+                    if z == 0:
+                        self.temp.append(cp.sum(matrix[:, i * self.stride:i * self.stride + self.kernel_size, k * self.stride:k * self.stride + self.kernel_size], axis=0))
                     self.u[z, i, k] = cp.sum(self.weight[z] * matrix[:, i * self.stride:i * self.stride + self.kernel_size, k * self.stride:k * self.stride + self.kernel_size])
 
         self.y = self.u + self.bias

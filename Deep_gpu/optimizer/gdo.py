@@ -48,9 +48,98 @@ class GradientDescentOptimizer:
         ly_grad = self.root_grad
         for layer in layers[::-1]:
             # 更新每一层的梯度
-            ly_grad = self._grad(layer, ly_grad)
+            if layer.type == 'linear':
+                ly_grad = self._grad_linear(layer, ly_grad)
+            elif layer.type == 'conv':
+                ly_grad = self._grad_conv(layer, ly_grad)
+            elif layer.type == 'pool':
+                ly_grad = self._grad_pool(layer, ly_grad)
+            elif layer.type == 'flatten':
+                ly_grad = self._grad_flatten(layer, ly_grad)
 
-    def _grad(self, layer, ly_grad):
+    def _grad_flatten(self, layer, lygrad):
+        layer.lwgrad = 0
+        layer.lbgrad = 0
+        return layer.derivative(lygrad)
+
+    def _grad_conv(self, layer, ly_grad):
+
+        layer.lwgrad = cp.zeros_like(layer.weight)
+        # 得到参数w的梯度
+
+        par_x = cp.array(layer.temp)
+        for i in range(ly_grad.shape[0]):
+            result = 0
+            for k in range(par_x.shape[0]):
+                x = k // ly_grad.shape[1]
+                y = k  % ly_grad.shape[2]
+                result += par_x[k] * ly_grad[i][x][y]
+            layer.lwgrad[i] = result
+
+        # 得到参数b的梯度
+        layer.lbgrad = cp.sum(ly_grad, axis=(1,2))
+        layer.lbgrad = layer.lbgrad.reshape(ly_grad.shape[0],1,1)
+
+        # 得到下一层的梯度
+        next_lygrad = cp.zeros_like(layer.uw_grad)
+        next_lygrad = next_lygrad.astype(float)
+        row = int((layer.uw_grad.shape[1]-layer.kernel_size)/layer.stride) + 1
+        col = int((layer.uw_grad.shape[2]-layer.kernel_size)/layer.stride) + 1
+
+        for i in range(row):
+            for k in range(col):
+                for z in range(layer.weight.shape[0]):
+                    next_lygrad[0, i*layer.stride:i*layer.stride+layer.kernel_size, k*layer.stride:k*layer.stride+layer.kernel_size] += layer.weight[z] * ly_grad[z,i,k]
+
+        for i in range(1, next_lygrad.shape[0]):
+            next_lygrad[i] = next_lygrad[0]
+
+        layer.temp = []
+        return next_lygrad
+
+    def _grad_pool(self, layer, ly_grad):
+
+        layer.lwgrad = 0
+        layer.lbgrad = 0
+
+        # 激活函数还原梯度, 比如矩阵打平的还原
+        if layer.activation_function:
+            ly_grad = layer.activation_function.derivative(ly_grad)
+
+        # TODO 应该放到pool层里面
+        if layer.is_pool:
+           
+            # 逆向池化, 还原梯度到对应位置
+            root_grad = cp.zeros_like(layer.uw_grad)
+            row = int((layer.uw_grad.shape[1]-layer.kernel_size)/layer.stride) + 1
+            col = int((layer.uw_grad.shape[2]-layer.kernel_size)/layer.stride) + 1
+        
+            tempx = 0
+            tempy = 0
+            for i in range(row):
+                for k in range(col):
+                    aera = layer.uw_grad[:, i * layer.stride:i * layer.stride + layer.kernel_size, k * layer.stride :k * layer.stride  + layer.kernel_size]
+                    # 找到矩阵中最大的值
+                    max_value_pos = cp.argmax(aera, axis=(1,2))
+                    x = i * layer.stride + max_value_pos//layer.kernel_size
+                    y = k * layer.stride + max_value_pos%layer.kernel_size
+                    _xy = cp.array([x, y]).T
+                    z: int = 0
+                    # 给对应的最大值所在位置的值赋予梯度, 其余位置梯度为0
+                    for c,d in _xy:
+                        root_grad[z][int(c)][int(d)] += ly_grad[z][tempx][tempy]
+                        z += 1
+                    tempy += 1
+                    if tempy >= ly_grad.shape[1]:
+                        tempx += 1
+                        tempy = 0
+                        
+        else:
+            root_grad = ly_grad
+
+        return root_grad
+
+    def _grad_linear(self, layer, ly_grad):
         # 损失函数的导数
         layer.ly_grad = ly_grad
 
