@@ -1,14 +1,14 @@
 import sys
 sys.path.append('../..') 
 from typing import Any
-import cupy as cp
+import numpy as cp
 import torch
 
-from Deep_gpu import MyModel
-from Deep_gpu import ReLU
-from Deep_gpu import MeanSquaredError, CrossEntropyLoss
-from Deep_gpu import GradientDescentOptimizer
-from Deep_gpu import Regularization
+from Deep import MyModel
+from Deep import ReLU
+from Deep import MeanSquaredError, CrossEntropyLoss
+from Deep import GradientDescentOptimizer
+from Deep import Regularization
 
 import torchvision
 import torchvision.transforms as transforms
@@ -74,8 +74,8 @@ for epoch in range(epochs):
         if x.shape[1] == 784:
             model.fit(x, y_one_hot)
 
-        k += 1
-        if k >= 10:
+        k += 1  
+        if k >= 100:
             break
     running_loss = model.loss[-1]
     print(f"{64*500} photos, Epoch {epoch + 1}, Loss: {running_loss}")

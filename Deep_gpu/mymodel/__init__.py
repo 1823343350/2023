@@ -1,1 +1,0 @@
-from .Mymodel import *

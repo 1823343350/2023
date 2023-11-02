@@ -1,21 +1,20 @@
 import sys
 sys.path.append('../..') 
 from typing import Any
-import cupy as cp
+import numpy as np
 import torch
 
-from Deep_gpu import MyModel
-from Deep_gpu import ReLU
-from Deep_gpu import MeanSquaredError, CrossEntropyLoss
-from Deep_gpu import GradientDescentOptimizer
-from Deep_gpu import Regularization
+from Deep import MyModel
+from Deep import ReLU
+from Deep import MeanSquaredError, CrossEntropyLoss
+from Deep import GradientDescentOptimizer
+from Deep import Regularization
 
 import torchvision
 import torchvision.transforms as transforms
 from torchvision import datasets, transforms
 
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 """
 多层感知机进行MINIST手写数据集的识别
@@ -26,11 +25,11 @@ transform = transforms.Compose([transforms.ToTensor()])
 
 # 获取MNIST数据集
 # windows
-# train_dataset = datasets.MNIST(root='G:\学习文件\python学习\CODE\data', train=True, transform=transform, download=True)
-# test_dataset = datasets.MNIST(root='G:\学习文件\python学习\CODE\data', train=False, transform=transform, download=True)
+train_dataset = datasets.MNIST(root='G:\学习文件\python学习\CODE\data', train=True, transform=transform, download=True)
+test_dataset = datasets.MNIST(root='G:\学习文件\python学习\CODE\data', train=False, transform=transform, download=True)
 # linux
-train_dataset = datasets.MNIST(root='/media/xc/学习/学习文件/python学习/CODE/data', train=True, transform=transform, download=True)
-test_dataset = datasets.MNIST(root='/media/xc/学习/学习文件/python学习/CODE/data', train=False, transform=transform, download=True)
+# train_dataset = datasets.MNIST(root='/media/xc/学习/学习文件/python学习/CODE/data', train=True, transform=transform, download=True)
+# test_dataset = datasets.MNIST(root='/media/xc/学习/学习文件/python学习/CODE/data', train=False, transform=transform, download=True)
 
 # 定义数据加载器
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=photo_nums, shuffle=True)
@@ -43,7 +42,7 @@ layer_dict = {
     'first': {
         'type': 'conv',
         'name': 'conv1',
-        'in_channels': 3,
+        'in_channels': 1,
         'out_channels': 64,
         'kernel_size': 3, # 卷积核大小
         'stride': 1, # 步长
@@ -91,7 +90,7 @@ layer_dict = {
     'output': {
         'type': 'linear',
         'name': 'linear1',
-        'input_features_nums': 484,
+        'input_features_nums': 30976,
         'Number_of_neurons': 10,
         'activation': "Softmax",
         'loss_fn': loss_fn
@@ -103,27 +102,22 @@ model = MyModel(layers_dict=layer_dict, optimizer = op, regularization=reg)
 
 epochs = 1
 for epoch in range(epochs):
-    loop = tqdm(train_loader, desc='Train')
     k = 0
-    for batch in loop:
+    for batch in train_loader:
         inputs, labels = batch
 
         x = inputs.numpy()
         y = labels.numpy()
-        x = x.reshape(photo_nums, 28, 28)
-        x = cp.asarray(x)
 
-        y_one_hot = cp.zeros((len(y), 10))
+        y_one_hot = np.zeros((len(y), 10))
+
         for i in range(len(y)):
             y_one_hot[i, y[i]] = 1
 
         model.fit(x, y_one_hot)
 
-        loop.set_description(f"Epoch [{epoch+1}/{epochs}]")
-        loop.set_postfix(loss = model.loss[-1])
-
         k += 1
-        if k >= 10:
+        if k >= 1:
             break
-    # running_loss = model.loss[-1]
-    # print(f"{64*1} photos, Epoch {epoch + 1}, Loss: {running_loss}")
+    running_loss = model.loss[-1]
+    print(f"{64*500} photos, Epoch {epoch + 1}, Loss: {running_loss}")
